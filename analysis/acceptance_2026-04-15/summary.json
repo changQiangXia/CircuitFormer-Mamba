@@ -1,0 +1,293 @@
+{
+  "generated_at_utc": "2026-04-15T15:41:25.052824+00:00",
+  "dataset": {
+    "train": 8296,
+    "val": 1025,
+    "test": 921
+  },
+  "params": {
+    "baseline": {
+      "total": 23640401,
+      "trainable": 23640401
+    },
+    "mamba": {
+      "total": 23670033,
+      "trainable": 23670033
+    },
+    "mamba_zero_init": {
+      "total": 23670033,
+      "trainable": 23670033
+    }
+  },
+  "experiments": {
+    "formal": {
+      "label": "Original training recipe",
+      "start_utc": "2026-04-11T18:09:54+00:00",
+      "end_utc": "2026-04-12T09:08:17.767489+00:00",
+      "best_ckpt": "exp/congestion_formal_2026-04-11_18-09-54_UTC/epoch=99-pearson=0.5570.ckpt",
+      "val_history": [
+        {
+          "epoch": 9,
+          "pearson": 0.40882409491080596,
+          "spearman": 0.4546983636810995,
+          "kendall": 0.33105952510525
+        },
+        {
+          "epoch": 19,
+          "pearson": 0.4260566968232328,
+          "spearman": 0.43727604376738227,
+          "kendall": 0.32050887708623604
+        },
+        {
+          "epoch": 29,
+          "pearson": 0.4785065538310541,
+          "spearman": 0.5005019182762438,
+          "kendall": 0.36745077152185684
+        },
+        {
+          "epoch": 39,
+          "pearson": 0.4980063543430341,
+          "spearman": 0.49890331313754677,
+          "kendall": 0.3671085329223879
+        },
+        {
+          "epoch": 49,
+          "pearson": 0.515829413163846,
+          "spearman": 0.49342863884772514,
+          "kendall": 0.3637135572483371
+        },
+        {
+          "epoch": 59,
+          "pearson": 0.5309588188292605,
+          "spearman": 0.5013748010454349,
+          "kendall": 0.3697417942906941
+        },
+        {
+          "epoch": 69,
+          "pearson": 0.5417558461869204,
+          "spearman": 0.4830212545281086,
+          "kendall": 0.3567994593580558
+        },
+        {
+          "epoch": 79,
+          "pearson": 0.5442560972059146,
+          "spearman": 0.48737061373549456,
+          "kendall": 0.3602627826869115
+        },
+        {
+          "epoch": 89,
+          "pearson": 0.553218579484103,
+          "spearman": 0.5003104412600082,
+          "kendall": 0.3695059156020116
+        },
+        {
+          "epoch": 99,
+          "pearson": 0.5569803228919452,
+          "spearman": 0.4984489626606238,
+          "kendall": 0.3684792585719713
+        }
+      ],
+      "final_val": {
+        "epoch": 99,
+        "pearson": 0.5569803228919452,
+        "spearman": 0.4984489626606238,
+        "kendall": 0.3684792585719713
+      },
+      "test": {
+        "pearson": 0.5409181297574016,
+        "spearman": 0.4886114052646958,
+        "kendall": 0.3615074204870189
+      }
+    },
+    "rerun": {
+      "label": "Strong baseline (lr=1e-3, seed=3407)",
+      "start_utc": "2026-04-12T10:58:54+00:00",
+      "end_utc": "2026-04-13T09:37:46.842704+00:00",
+      "best_ckpt": "exp/congestion_rerun_lr1e-3_seed3407_2026-04-12_10-58-54_UTC/epoch=99-pearson=0.6488.ckpt",
+      "val_history": [
+        {
+          "epoch": 9,
+          "pearson": 0.5051664705442073,
+          "spearman": 0.4850237282145035,
+          "kendall": 0.35634684628807195
+        },
+        {
+          "epoch": 19,
+          "pearson": 0.5504224328259335,
+          "spearman": 0.4924995809835782,
+          "kendall": 0.3631489696533138
+        },
+        {
+          "epoch": 29,
+          "pearson": 0.5566743621472597,
+          "spearman": 0.3966481512336646,
+          "kendall": 0.29442771559680314
+        },
+        {
+          "epoch": 39,
+          "pearson": 0.5951315589178428,
+          "spearman": 0.45647067082030335,
+          "kendall": 0.33848394444527574
+        },
+        {
+          "epoch": 49,
+          "pearson": 0.602438553587981,
+          "spearman": 0.406624834960722,
+          "kendall": 0.3026970302498295
+        },
+        {
+          "epoch": 59,
+          "pearson": 0.6345859034023311,
+          "spearman": 0.4869757149944251,
+          "kendall": 0.3616258296734532
+        },
+        {
+          "epoch": 69,
+          "pearson": 0.622443309619947,
+          "spearman": 0.4269259714832655,
+          "kendall": 0.31765799850161813
+        },
+        {
+          "epoch": 79,
+          "pearson": 0.638917107820953,
+          "spearman": 0.49110220275977096,
+          "kendall": 0.36457284224850806
+        },
+        {
+          "epoch": 89,
+          "pearson": 0.6413222576827203,
+          "spearman": 0.48377836230625676,
+          "kendall": 0.359555364850903
+        },
+        {
+          "epoch": 99,
+          "pearson": 0.6488358264838525,
+          "spearman": 0.4832278988758863,
+          "kendall": 0.3591094905735989
+        }
+      ],
+      "final_val": {
+        "epoch": 99,
+        "pearson": 0.6488358264838525,
+        "spearman": 0.4832278988758863,
+        "kendall": 0.3591094905735989
+      },
+      "test": {
+        "pearson": 0.6382293749098552,
+        "spearman": 0.4655097312239171,
+        "kendall": 0.34637340246802056
+      }
+    },
+    "zero_init_mamba": {
+      "label": "BEV Mamba + zero-init",
+      "start_utc": "2026-04-13T19:08:30+00:00",
+      "epoch89_utc": "2026-04-14T14:47:15+00:00",
+      "resume_start_utc": "2026-04-14T16:17:12+00:00",
+      "end_utc": "2026-04-14T18:27:28.153626+00:00",
+      "best_ckpt": "exp/congestion_bev_mamba_zero_init_2026-04-13_19-08-30_UTC/epoch=99-pearson=0.6499.ckpt",
+      "val_history": [
+        {
+          "epoch": 89,
+          "pearson": 0.6475
+        },
+        {
+          "epoch": 99,
+          "pearson": 0.6499208077168421
+        }
+      ],
+      "final_val": {
+        "epoch": 99,
+        "pearson": 0.6499208077168421,
+        "spearman": 0.4883866104206714,
+        "kendall": 0.36301648813076415
+      },
+      "test": {
+        "pearson": 0.6404262072291163,
+        "spearman": 0.47588735937725846,
+        "kendall": 0.3540435606638758
+      }
+    }
+  },
+  "events": [
+    {
+      "time_utc": "2026-04-11T18:09:54+00:00",
+      "title": "Original CircuitFormer run starts",
+      "detail": "Official-style training recipe used as the first full reproduction."
+    },
+    {
+      "time_utc": "2026-04-12T10:58:54+00:00",
+      "title": "Strong baseline rerun starts",
+      "detail": "Learning rate raised to 1e-3 and seed fixed to 3407."
+    },
+    {
+      "time_utc": "2026-04-13T09:58:40+00:00",
+      "title": "First Mamba attempt fails",
+      "detail": "DataLoader hits FileNotFoundError because the dataset path points to ../datasets/... and the required npy file is absent there."
+    },
+    {
+      "time_utc": "2026-04-13T10:01:21+00:00",
+      "title": "BEV Mamba run restarts",
+      "detail": "The run is relaunched after correcting the data path issue."
+    },
+    {
+      "time_utc": "2026-04-13T19:08:30+00:00",
+      "title": "Zero-init Mamba run starts",
+      "detail": "The output projection of the BEV Mamba neck is initialized to zero."
+    },
+    {
+      "time_utc": "2026-04-14T14:47:15+00:00",
+      "title": "Zero-init run reaches epoch 89",
+      "detail": "A valid checkpoint is saved before the later interruption."
+    },
+    {
+      "time_utc": "2026-04-14T16:17:12+00:00",
+      "title": "Interrupted training is resumed",
+      "detail": "Training resumes from last.ckpt and keeps the same save directory."
+    },
+    {
+      "time_utc": "2026-04-14T18:27:28.153626+00:00",
+      "title": "Final Mamba checkpoint saved",
+      "detail": "The resumed run reaches epoch 99 and saves the final accepted checkpoint."
+    }
+  ],
+  "notes": {
+    "metric_definition": "Pearson, Spearman, and Kendall are computed per sample on the predicted and target congestion maps, then averaged across the dataset.",
+    "validation_cadence": "Validation runs every 10 epochs according to trainer.check_val_every_n_epoch=10.",
+    "zero_init_history_note": "The early stdout of the zero-init run was not preserved as a full train.log, so its intermediate curve before epoch 89 is reconstructed only from saved checkpoints and the later resume log.",
+    "run1_failure_excerpt": "FileNotFoundError: [Errno 2] No such file or directory: '../datasets/CircuitNet-N28/graph_features/instance_placement_micron/6274-RISCY-FPU-b-1-c20-u0.9-m1-p4-f1.npy'"
+  },
+  "gain_vs_rerun": {
+    "val": {
+      "pearson": {
+        "absolute": 0.0010849812329896125,
+        "relative_percent": 0.16721968619848002
+      },
+      "spearman": {
+        "absolute": 0.005158711544785088,
+        "relative_percent": 1.067552506133357
+      },
+      "kendall": {
+        "absolute": 0.003906997557165226,
+        "relative_percent": 1.0879683382704954
+      }
+    },
+    "test": {
+      "pearson": {
+        "absolute": 0.002196832319261044,
+        "relative_percent": 0.3442073344824232
+      },
+      "spearman": {
+        "absolute": 0.010377628153341367,
+        "relative_percent": 2.2293042351781844
+      },
+      "kendall": {
+        "absolute": 0.007670158195855259,
+        "relative_percent": 2.2144189309002784
+      }
+    }
+  },
+  "param_overhead_vs_baseline": {
+    "absolute": 29632,
+    "relative_percent": 0.12534474351767552
+  }
+}

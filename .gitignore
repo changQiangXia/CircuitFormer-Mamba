@@ -1,0 +1,33 @@
+# Python cache and build outputs
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Notebook and editor artifacts
+.ipynb_checkpoints/
+.vscode/
+.idea/
+.DS_Store
+
+# Local environments
+.venv/
+venv/
+env/
+
+# Training outputs and local logs
+exp/
+outputs/
+wandb/
+*.log
+
+# Local checkpoints and downloaded weights
+ckpts/
+*.ckpt
+*.pth
+
+# Local-only documentation backups
+PROJECT_CLOSEOUT_CHECKLIST.md
+README.original.md

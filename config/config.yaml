@@ -1,0 +1,51 @@
+data:
+  dataset: circuitnet
+  # Override on CLI if you want gcell placement or a different prepared dataset root.
+  data_root: ${hydra:runtime.cwd}/../datasets/CircuitNet-N28/graph_features/instance_placement_micron
+  label_root: ${hydra:runtime.cwd}/../datasets/CircuitNet-N28/training_set/congestion/label
+  # label_root: ${hydra:runtime.cwd}/../datasets/CircuitNet-N28/training_set/DRC/label # for DRC
+
+  num_workers: 16  # data loader workers
+  batch_size: 8  # batch size for training
+
+experiment:
+  project: circuitformer               # wandb project
+  save_dir: ${hydra:runtime.cwd}/exp/exp1            # log directory, will be created
+  seed: null
+  resume_ckpt_path: null
+
+  checkpoint_interval: 1000
+  log_image_interval: 500
+  ckpt_path: ${hydra:runtime.cwd}/ckpts/circuitformer.ckpt
+
+model:
+  model_name: circuitformer
+  loss: mse
+  max_epochs: 100
+  warmup_epochs: 10
+  lr_scheduler: cosine
+  lr: 0.0001
+  warmup_lr: 0.000001
+  min_lr: 0.000001
+  weight_decay: 0
+  batch_size: ${data.batch_size}
+  loss_weight: 128
+  label_weight: 1
+  bev_mamba:
+    enabled: false
+    num_blocks: 1
+    inner_dim: 64
+    scan_downsample: 4
+    dw_kernel_size: 3
+    out_proj_init_zero: false
+
+
+
+trainer:
+  max_epochs: ${model.max_epochs}
+  log_every_n_steps: 1
+  accelerator: gpu
+  devices: [0]
+  precision: 16
+  check_val_every_n_epoch: 10
+  sync_batchnorm: True
