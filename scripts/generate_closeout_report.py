@@ -592,9 +592,32 @@ def make_markdown(summary):
 
 ## 2. 任务定义
 
-任务目标为**芯片拥塞热力图预测**。输入数据由标准单元或模块的矩形框坐标集合构成。模型根据这些布局元素生成 $256 \times 256$ 的拥塞分布图，用于表征潜在布线紧张区域与相对宽松区域。
+依据原论文 *Circuit as Set of Points* 的摘要、引言与 Method 部分，CircuitFormer 面向的是**布局后快速可布线性评估**问题。论文给出的直接任务范围包括两项:
 
-项目方法的一个特点在于，流程直接采用“带几何属性的点集合”作为数据表示，并省去手工构造图像与较重图预处理步骤；模型从原始布局元素中学习特征。
+- congestion prediction
+- design rule check (DRC) violation prediction
+
+原论文对任务形式的核心界定可以概括为: 基于电路设计的点级信息，执行网格级预测。对应英文原文短语如下:
+
+> "making grid-level predictions of the circuit based on the point-wise information"
+
+与输入抽象相关的原文短语如下:
+
+> "treating circuit components as point clouds"
+
+Method 部分进一步说明，论文将 buffers、inverters、registers、IP cores 等电路元件视作点云样本，并以每个元件的中心坐标、宽度、高度作为基础几何属性。原论文在这一处的表述同时覆盖 geometric information 与 topological information 两类来源；当前仓库主线实现直接使用的是放置后的几何信息，再通过编码器和解码器完成后续预测。
+
+据此，原始 CircuitFormer 的任务定义可以严格表述为:
+
+- 输入: 布局后电路元件的点级表示，重点包括几何属性，并在论文叙事中同时考虑拓扑关系
+- 输出: 电路版图上的网格级预测结果
+- 下游任务: congestion prediction 与 DRC violation prediction
+
+结合当前项目的公开验收范围，本报告对任务的落点进一步限定为:
+
+- 当前收尾结论仅覆盖 congestion prediction
+- 当前代码主线从矩形框坐标出发构造几何特征，并输出 $256 \times 256$ 网格上的拥塞预测图
+- 指标、图表与结项判断均围绕 congestion prediction 路线展开
 
 ## 3. 原版 CircuitFormer 的工作流程
 
