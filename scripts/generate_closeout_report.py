@@ -412,7 +412,7 @@ def plot_timeline(summary):
     _savefig(FIG_DIR / "reproduction_timeline.png")
 
 
-def draw_box(ax, xy, width, height, text, facecolor):
+def draw_box(ax, xy, width, height, text, facecolor, fontsize=9):
     x, y = xy
     patch = FancyBboxPatch(
         (x, y),
@@ -422,13 +422,14 @@ def draw_box(ax, xy, width, height, text, facecolor):
         linewidth=1.2,
         edgecolor="#2D2D2D",
         facecolor=facecolor,
+        zorder=2,
     )
     ax.add_patch(patch)
-    ax.text(x + width / 2, y + height / 2, text, ha="center", va="center", fontsize=9)
+    ax.text(x + width / 2, y + height / 2, text, ha="center", va="center", fontsize=fontsize, zorder=3)
     return patch
 
 
-def draw_arrow(ax, start, end):
+def draw_arrow(ax, start, end, linestyle="-", connectionstyle="arc3"):
     ax.add_patch(
         FancyArrowPatch(
             start,
@@ -437,29 +438,36 @@ def draw_arrow(ax, start, end):
             mutation_scale=14,
             linewidth=1.2,
             color="#404040",
+            linestyle=linestyle,
+            connectionstyle=connectionstyle,
+            zorder=1,
         )
     )
 
 
 def plot_architecture_diagram():
-    fig, ax = plt.subplots(figsize=(12.4, 5.2))
+    fig, ax = plt.subplots(figsize=(13.4, 7.4))
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
     ax.axis("off")
 
-    ax.text(0.24, 0.93, "Original CircuitFormer", fontsize=13, weight="bold", ha="center")
-    ax.text(0.75, 0.93, "Accepted Variant: BEV Mamba + Zero-init", fontsize=13, weight="bold", ha="center")
+    ax.text(0.20, 0.94, "Original CircuitFormer", fontsize=13, weight="bold", ha="center")
+    ax.text(0.50, 0.945, "Architecture Comparison", fontsize=15, weight="bold", ha="center")
+    ax.text(0.80, 0.94, "Accepted Variant: BEV Mamba + zero-init", fontsize=13, weight="bold", ha="center")
 
+    ax.text(0.05, 0.86, "Original pipeline", fontsize=10.5, weight="bold", ha="left", color="#2F4B7C")
     left_boxes = [
-        ((0.05, 0.58), 0.14, 0.16, "Netlist boxes\n(x1,y1,x2,y2)", "#DCEAF7"),
-        ((0.27, 0.58), 0.16, 0.16, "VoxSeT encoder\npoint -> BEV", "#F7E1D7"),
-        ((0.50, 0.58), 0.18, 0.16, "U-Net++ decoder\ncongestion map", "#DFF2DF"),
+        ((0.05, 0.70), 0.16, 0.11, "Netlist boxes\n(x1, y1, x2, y2)", "#DCEAF7"),
+        ((0.30, 0.70), 0.18, 0.11, "VoxSeT encoder\npoint -> BEV", "#F7E1D7"),
+        ((0.57, 0.70), 0.20, 0.11, "U-Net++ decoder\ncongestion map", "#DFF2DF"),
     ]
+
+    ax.text(0.05, 0.56, "Accepted pipeline", fontsize=10.5, weight="bold", ha="left", color="#2C6E49")
     right_boxes = [
-        ((0.05, 0.20), 0.14, 0.16, "Netlist boxes\n(x1,y1,x2,y2)", "#DCEAF7"),
-        ((0.27, 0.20), 0.16, 0.16, "VoxSeT encoder\npoint -> BEV", "#F7E1D7"),
-        ((0.50, 0.20), 0.18, 0.16, "BEV Mamba neck\nresidual adapter", "#FFF2B3"),
-        ((0.77, 0.20), 0.18, 0.16, "U-Net++ decoder\ncongestion map", "#DFF2DF"),
+        ((0.05, 0.40), 0.16, 0.11, "Netlist boxes\n(x1, y1, x2, y2)", "#DCEAF7"),
+        ((0.26, 0.40), 0.18, 0.11, "VoxSeT encoder\npoint -> BEV", "#F7E1D7"),
+        ((0.50, 0.40), 0.18, 0.11, "BEV Mamba neck\nresidual adapter", "#FFF2B3"),
+        ((0.75, 0.40), 0.20, 0.11, "U-Net++ decoder\ncongestion map", "#DFF2DF"),
     ]
 
     for args in left_boxes:
@@ -467,30 +475,59 @@ def plot_architecture_diagram():
     for args in right_boxes:
         draw_box(ax, args[0], args[1], args[2], args[3], args[4])
 
-    draw_arrow(ax, (0.19, 0.66), (0.27, 0.66))
-    draw_arrow(ax, (0.43, 0.66), (0.50, 0.66))
+    draw_arrow(ax, (0.21, 0.755), (0.30, 0.755))
+    draw_arrow(ax, (0.48, 0.755), (0.57, 0.755))
 
-    draw_arrow(ax, (0.19, 0.28), (0.27, 0.28))
-    draw_arrow(ax, (0.43, 0.28), (0.50, 0.28))
-    draw_arrow(ax, (0.68, 0.28), (0.77, 0.28))
+    draw_arrow(ax, (0.21, 0.455), (0.26, 0.455))
+    draw_arrow(ax, (0.44, 0.455), (0.50, 0.455))
+    draw_arrow(ax, (0.68, 0.455), (0.75, 0.455))
 
-    inner = [
-        ("GroupNorm", 0.49, 0.50),
-        ("1x1 proj + gate", 0.61, 0.50),
-        ("DWConv", 0.73, 0.50),
-        ("row scan", 0.83, 0.50),
-        ("col scan", 0.83, 0.43),
-        ("zero-init out proj", 0.66, 0.43),
-    ]
-    ax.text(0.59, 0.49, "Inside the Mamba neck", fontsize=10, weight="bold")
-    for label, x, y in inner:
-        draw_box(ax, (x, y), 0.10, 0.055, label, "#F8F8F8")
+    detail_panel = FancyBboxPatch(
+        (0.06, 0.07),
+        0.88,
+        0.23,
+        boxstyle="round,pad=0.02,rounding_size=0.03",
+        linewidth=1.1,
+        edgecolor="#9A8F4C",
+        facecolor="#FFF9DD",
+        zorder=0,
+    )
+    ax.add_patch(detail_panel)
+    ax.text(0.09, 0.28, "Inside the BEV Mamba neck", fontsize=10.5, weight="bold", ha="left")
+
+    draw_box(ax, (0.10, 0.145), 0.11, 0.06, "GroupNorm", "#FFFFFF", fontsize=8.5)
+    draw_box(ax, (0.25, 0.145), 0.13, 0.06, "1x1 proj\nsplit y / gate", "#FFFFFF", fontsize=8.3)
+    draw_box(ax, (0.43, 0.145), 0.11, 0.06, "DWConv", "#FFFFFF", fontsize=8.5)
+    draw_box(ax, (0.59, 0.185), 0.11, 0.06, "row scan\nbi-directional", "#FFFFFF", fontsize=8.1)
+    draw_box(ax, (0.59, 0.105), 0.11, 0.06, "col scan\nbi-directional", "#FFFFFF", fontsize=8.1)
+    draw_box(ax, (0.75, 0.145), 0.11, 0.06, "average\n+ gate", "#FFFFFF", fontsize=8.3)
+    draw_box(ax, (0.88, 0.145), 0.05, 0.06, "out\nproj", "#FFFFFF", fontsize=8.0)
+
+    draw_arrow(ax, (0.21, 0.175), (0.25, 0.175))
+    draw_arrow(ax, (0.38, 0.175), (0.43, 0.175))
+    draw_arrow(ax, (0.54, 0.175), (0.59, 0.215))
+    draw_arrow(ax, (0.54, 0.175), (0.59, 0.135))
+    draw_arrow(ax, (0.70, 0.215), (0.75, 0.175))
+    draw_arrow(ax, (0.70, 0.135), (0.75, 0.175))
+    draw_arrow(ax, (0.86, 0.175), (0.88, 0.175))
 
     ax.text(
-        0.58,
-        0.09,
-        "Key idea: keep the strong encoder-decoder backbone, but insert a lightweight residual neck that scans the BEV feature map\n"
-        "row-wise and column-wise. Zero-initializing the output projection makes the new branch start as a gentle adapter.",
+        0.905,
+        0.115,
+        "zero-init:\nstart from\nresidual-only",
+        fontsize=8.0,
+        ha="center",
+        va="top",
+        color="#6A5A00",
+    )
+
+    draw_arrow(ax, (0.59, 0.40), (0.50, 0.28), linestyle="--", connectionstyle="arc3,rad=0.15")
+
+    ax.text(
+        0.50,
+        0.03,
+        "Key difference: the accepted variant keeps the original encoder-decoder backbone, "
+        "and adds one lightweight residual neck for row-wise and column-wise BEV scanning.",
         fontsize=9,
         ha="center",
     )
