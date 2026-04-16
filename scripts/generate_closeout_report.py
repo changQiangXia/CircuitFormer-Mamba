@@ -222,6 +222,11 @@ def build_summary():
             "validation_cadence": "Validation runs every 10 epochs according to trainer.check_val_every_n_epoch=10.",
             "zero_init_history_note": "The early stdout of the zero-init run was not preserved as a full train.log, so its intermediate curve before epoch 89 is reconstructed only from saved checkpoints and the later resume log.",
             "run1_failure_excerpt": "FileNotFoundError: [Errno 2] No such file or directory: '../datasets/CircuitNet-N28/graph_features/instance_placement_micron/6274-RISCY-FPU-b-1-c20-u0.9-m1-p4-f1.npy'",
+            "method_scope_note": "The accepted BEV Mamba variant is a lightweight residual neck inspired by selective state space ideas, not a full Mamba backbone replacement.",
+            "contribution_scope_note": "The largest metric jump in this project comes from the strong baseline rerun; the BEV Mamba gain versus that baseline is small.",
+            "experiment_scope_note": "Public conclusions here are limited to congestion prediction with the current weighted-MSE training path; the commented DRC path and configurable loss field are not treated as formally validated alternate experiment routes.",
+            "prior_note": "The decoder encoder loads ResNet18 pretrained weights, so the accepted route is not free of external visual pretraining priors.",
+            "variance_note": "The accepted comparison uses one strong-baseline run and one zero-init Mamba run; no multi-seed variance estimate is provided.",
         },
     }
 
@@ -557,9 +562,9 @@ def make_markdown(summary):
   - `exp/congestion_rerun_lr1e-3_seed3407_2026-04-12_10-58-54_UTC/epoch=99-pearson=0.6488.ckpt`
   - `exp/congestion_formal_2026-04-11_18-09-54_UTC/epoch=99-pearson=0.5570.ckpt`
 
-## 1. 一句话结论
+## 1. 结论摘要
 
-这次收尾阶段可以把项目主线定下来: 我们不仅完整复现了 CircuitFormer，还在**几乎不增加模型规模**的前提下，把一个轻量级的 **BEV Mamba 残差适配层** 插到了编码器和解码器之间，最终得到的 `zero-init BEV Mamba` 版本在验证集和测试集上都优于强基线，说明这条改进路线是成立的。
+当前项目已完成 `CircuitFormer` 的可运行复现，并通过训练配方调整将强基线从 `0.5570` 提升至 `0.6488`。在此基础上，以约 `+0.125%` 的参数增量，在编码器与解码器之间加入一个受 Mamba 思想启发的轻量二维 BEV 残差 neck。最终得到的 `zero-init BEV Mamba` 版本相对强基线在验证集与测试集上均呈现小幅正增益。现有证据足以支撑项目收尾结论，结论范围限定在当前任务设置与当前单次比较证据。
 
 ### 1.1 术语说明: `zero-init BEV Mamba`
 
@@ -569,12 +574,12 @@ def make_markdown(summary):
   表示 *Bird's-Eye View*，即俯视平面表示。在本项目中，布局点集合会先被整理为二维 BEV 特征图。
 
 - `Mamba`
-  在本项目中的含义不是“完整复现原论文中的 Mamba 主干网络”，而是指一个受 Mamba / selective state space 思想启发的二维轻量模块。该模块位于 `model/bev_mamba.py`，主要由行扫描、列扫描、输入相关状态更新、门控和残差连接构成。
+  在本项目中，`Mamba` 指向一个受 Mamba / selective state space 思想启发的二维轻量模块。模块位于 `model/bev_mamba.py`，作用范围集中在 encoder 与 decoder 之间的 neck 位置，主要由行扫描、列扫描、输入相关状态更新、门控和残差连接构成。
 
 - `zero-init`
   表示该模块最后一层输出投影 `out_proj` 在初始化时被置零，对应代码开关为 `out_proj_init_zero=True`。
 
-因此，`zero-init BEV Mamba` 在本项目中的更准确含义是:
+在当前项目里，`zero-init BEV Mamba` 更准确的含义可以写成:
 
 “在 BEV 特征图上加入一个受 Mamba 思想启发的轻量残差扫描模块，并将该模块最后一层输出投影以零权重初始化。”
 
@@ -587,68 +592,87 @@ def make_markdown(summary):
 - `model.bev_mamba.dw_kernel_size=3`
 - `model.bev_mamba.out_proj_init_zero=True`
 
-## 2. 这个项目到底在做什么
+## 2. 任务定义
 
-通俗地说，这个任务是在做“**芯片拥塞热力图预测**”。输入不是普通图片，而是一堆标准单元或模块的矩形框坐标。模型要根据这些布局元素，预测 256x256 的拥塞分布图，告诉我们哪里可能布线紧张、哪里相对宽松。
+任务目标为**芯片拥塞热力图预测**。输入数据由标准单元或模块的矩形框坐标集合构成。模型根据这些布局元素生成 $256 \times 256$ 的拥塞分布图，用于表征潜在布线紧张区域与相对宽松区域。
 
-这个项目最有意思的地方在于，它没有先把电路强行转成一张手工做出来的图，也没有先做很重的图预处理，而是把电路看成“带几何属性的点集合”，直接从原始布局元素里学习特征。
+项目方法的一个特点在于，流程直接采用“带几何属性的点集合”作为数据表示，并省去手工构造图像与较重图预处理步骤；模型从原始布局元素中学习特征。
 
-## 3. 原版 CircuitFormer 是怎么工作的
+## 3. 原版 CircuitFormer 的工作流程
 
 ### 3.1 输入表示
 
-在 `model/circuitformer.py` 里，模型先把每个矩形框 `(x1, y1, x2, y2)` 变成更容易学习的几何特征:
+在 `model/circuitformer.py` 中，每个矩形框 $(x_1, y_1, x_2, y_2)$ 会被转换为更适合学习的几何特征:
 
 - 中心点坐标
 - 左下/右上坐标
 - 宽和高
 - 面积
 
-这样做的好处是，模型拿到的不只是“框在哪里”，还知道“框有多大、形状如何”。
+这一表示方式同时保留了位置、尺度与形状信息。
 
 ### 3.2 编码器: VoxSeT
 
-`model/voxelset/voxset.py` 里的 `VoxSeT` 做了两件关键事:
+`model/voxelset/voxset.py` 中的 `VoxSeT` 主要包含两项关键处理:
 
-1. 先把点特征映射到隐藏空间，并加上基于位置的傅里叶编码。
-2. 再在 1x / 2x / 4x / 8x 四个尺度上做聚合，把局部与更大范围的信息都揉进来。
+1. 将点特征映射到隐藏空间，并叠加基于位置的傅里叶编码。
+2. 在 $1\times$ / $2\times$ / $4\times$ / $8\times$ 四个尺度上执行聚合，使局部与更大范围的信息共同进入表征。
 
-聚合后的特征会被 scatter 到 256x256 的 BEV 平面上，因此后面的解码器就能像处理图像那样处理布局特征图。
+聚合后的特征会被 scatter 到 $256 \times 256$ 的 BEV 平面，后续解码器即可按照二维特征图的方式继续处理。
 
 ### 3.3 解码器: U-Net++
 
-`model/circuitformer.py` 里用的是 `segmentation_models_pytorch` 的 `UnetPlusPlus`。这一步可以理解成“把已经整理好的二维特征图重新细化”，最后输出一张单通道拥塞图。
+`model/circuitformer.py` 采用 `segmentation_models_pytorch` 中的 `UnetPlusPlus` 作为解码器，用于对整理后的二维特征图进行细化，并输出单通道拥塞图。当前实现中，解码器的 encoder 部分还会加载 `ckpts/resnet18.pth` 提供的 `resnet18` 预训练权重，因此本项目当前路线包含外部视觉预训练先验。
 
 ### 3.4 训练目标
 
-`model/model_interface.py` 里的训练损失是**带像素权重的 MSE**:
+`model/model_interface.py` 中当前验收训练主线使用的是**带像素权重的 MSE**:
 
-- 主体误差: `(output - label)^2`
-- 再乘上数据集里预先统计好的 `weight`
-- 最后再乘一个全局的 `loss_weight=128`
+- 主体误差: $(\mathrm{output}-\mathrm{label})^2$
+- 再乘以数据集预先统计得到的 `weight`
+- 最后乘以全局 `loss_weight=128`
 
-`data/circuitnet.py` 里的 `weight` 不是随便拍脑袋设的，它来自训练集标签分布的桶统计，并做了平滑。直观理解就是: 罕见但重要的拥塞区域，在训练时会被更认真地看待。
+`data/circuitnet.py` 中的 `weight` 来源于训练集标签分布的桶统计，并经过平滑处理。该设计使罕见但重要的拥塞区域在训练阶段获得更高关注。
 
-### 3.5 指标怎么计算
+需要额外说明的是，配置文件中保留了 `model.loss` 字段，当前 `training_step` 对应的正式验收训练路径为带权 MSE。报告对训练目标的表述范围据此限定在现有主线。
 
-`metrics.py` 不是把全测试集所有像素摊平后算一次相关系数，而是**先对每个样本单独算 Pearson / Spearman / Kendall，再对样本取平均**。这意味着最终分数更像“平均每张设计图的预测质量”，而不是少数超大样本主导出来的单个总分。
+### 3.5 指标计算方式
 
-## 4. Mamba 版到底改了什么
+`metrics.py` 对每个样本分别计算 Pearson / Spearman / Kendall，随后对样本级指标取平均。最终分数因此更接近“单张设计图平均预测质量”，较少受到少数超大样本的主导。
 
-这次接受验收的版本不是推翻原模型重来，而是在 `model/circuitformer.py` 里，把一个新的 `BEV Mamba neck` 插到了:
+因此，报告中的 `test Pearson` 对应样本级相关系数均值口径，区别于将整个测试集所有像素摊平后计算单次全局相关系数。另外，当前验收配置采用单卡路径，相关说明范围限定在该执行路径。
+
+## 4. BEV Mamba 模块原理
+
+验收版本在 `model/circuitformer.py` 中引入了新的 `BEV Mamba neck`，结构链路为:
 
 `VoxSeT encoder -> BEV Mamba neck -> U-Net++ decoder`
 
-具体实现见 `model/bev_mamba.py`。它的结构可以概括成:
+该模块位于编码器与解码器之间，输入与输出均为二维 BEV 特征图。依据现有代码，其功能可表述为: 在保持主干框架的前提下，为 BEV 特征图加入一条轻量级的行列扫描残差通道，用于补充较大范围的上下文传播。
 
-1. 先做 `GroupNorm`
-2. 用 `1x1 conv` 把通道拆成“内容分支”和“门控分支”
-3. 用 `depthwise conv` 做局部空间混合
-4. 再分别沿着**行方向**和**列方向**做双向扫描
-5. 把两条扫描结果平均后，再乘门控
-6. 最后投影回原通道数，并和输入做残差相加
+### 4.1 代码层面的数据流
 
-这一层的价值在于: 原版编码器已经能把点云布局整理成 BEV 特征图，但 BEV 特征图上的“长程关系”仍然可以继续增强。Mamba 风格的扫描给了模型一种比纯卷积更直接的“沿行/列传播信息”的办法。
+`model/bev_mamba.py` 中的 `LightweightBEVMambaBlock` 按如下顺序处理输入特征 `x`:
+
+1. 保存残差 `residual = x`
+2. 执行 `GroupNorm`
+3. 若 `scan_downsample > 1`，先做平均池化降采样
+4. 经过 `1x1 conv`，将通道拆成两部分:
+   - 一部分作为待扫描的内容特征 `y`
+   - 一部分作为门控特征 `gate`
+5. 对 `y` 执行深度可分离卷积 `dwconv`
+6. 分别执行行扫描与列扫描
+7. 对行扫描与列扫描结果取平均
+8. 通过 `sigmoid(gate)` 对结果进行门控
+9. 经 `out_proj` 投影回原始通道数
+10. 若前面做过降采样，则插值恢复到原分辨率
+11. 与残差执行相加，输出 `residual + y`
+
+从结构角度看，该模块同时包含三种信息处理机制:
+
+- `dwconv` 负责局部邻域混合
+- 行列扫描负责较长距离传播
+- 残差连接负责尽量保持主干表征稳定，并降低新增分支的直接改写幅度
 
 若当前 Markdown 环境支持 Mermaid，可直接渲染以下简化流程图:
 
@@ -684,42 +708,56 @@ flowchart LR
     G --> H[拥塞热力图输出]
 ```
 
-## 5. 为什么 `zero-init` 很关键
+## 5. `zero-init` 在训练起步阶段的意义
 
-`model/bev_mamba.py` 里有一个很重要的开关: `out_proj_init_zero=True`。
+`model/bev_mamba.py` 中提供了 `out_proj_init_zero=True` 这一设置，对应如下代码逻辑:
 
-它做的事情并不玄学，就是把新增分支最后那层 `out_proj` 的权重初始化成 0。这样一来，训练刚开始时这条新分支几乎不会粗暴改写原始特征，整个 neck 更像一个“从零开始学习的小修正项”，而不是一上来就把原 backbone 的表示打乱。
+- 新增分支最后一层 `out_proj` 的权重被初始化为 0
 
-从工程角度看，这是一种很稳的加法方式: 先尊重已经有效的原模型，再让新模块逐步学会在何处、以多大力度介入。
+在参数初始化时，由于 `out_proj` 权重被显式置零且该层 bias 为空，Mamba 分支经 `out_proj` 后输出精确为 0，整个块的输出满足:
 
-## 6. 复现历程与反思
+$$
+\mathrm{output} = \mathrm{residual}
+$$
+
+这意味着模块在初始化时就是恒等映射，主干网络已有表征在起始阶段保持原状。
+
+从优化角度看，该设计具有三点直接作用:
+
+1. 新增模块在初始化时对主干特征的直接扰动为 0
+2. 梯度可以先学习“在何处介入”，再学习“介入多少”
+3. 插入式结构改造有助于减小训练起步阶段的直接扰动
+
+因此，`zero-init` 可以理解为一种“保守启动”策略。网络在初始化时先维持原始主干行为，随后再学习残差修正量。
+
+## 6. 复现历程与阶段性分析
 
 ### 6.1 第一阶段: 原版复现跑通
 
-最早的完整复现实验是 `exp/congestion_formal_2026-04-11_18-09-54_UTC`。这一步证明了代码、数据和训练流程整体是通的，但最终验证集 Pearson 只有 `{formal_val["pearson"]:.4f}`，说明“能跑通”和“跑到强结果”不是一回事。
+最早的完整复现实验为 `exp/congestion_formal_2026-04-11_18-09-54_UTC`。该阶段证明代码、数据与训练流程整体可运行，但最终验证集 Pearson 为 `{formal_val["pearson"]:.4f}`，说明“流程可运行”与“结果达到强水平”之间仍存在明显差距。
 
 ### 6.2 第二阶段: 强基线重跑
 
-随后使用 `lr=1e-3`、`seed=3407` 重跑，实验目录是 `exp/congestion_rerun_lr1e-3_seed3407_2026-04-12_10-58-54_UTC`。这一步把验证集 Pearson 拉到了 `{rerun_val["pearson"]:.4f}`，说明基础训练配方本身就还有不小的优化空间。
+随后采用 `lr=1e-3`、`seed=3407` 进行重跑，实验目录为 `exp/congestion_rerun_lr1e-3_seed3407_2026-04-12_10-58-54_UTC`。该阶段将验证集 Pearson 提升至 `{rerun_val["pearson"]:.4f}`，表明基础训练配方本身具备较大优化空间。
 
-这个阶段的收获很重要: 如果没有把基线先抬高，后面就很难判断 Mamba 的提升到底来自结构，还是只是来自“把训练配方调得更合理”。
+该阶段的意义在于建立强基线。只有在强基线存在的前提下，后续结构改动带来的增益才能获得更清晰的归因。
 
-### 6.3 第三阶段: Mamba 改造与第一次失败
+### 6.3 第三阶段: Mamba 改造与首次失败记录
 
-第一次 BEV Mamba 尝试是 `exp/congestion_bev_mamba_run1_2026-04-13_09-58-40_UTC`，但日志里明确出现了 `FileNotFoundError`。问题根源不是模型本身，而是数据路径指向了 `../datasets/...` 下一个并不存在的 `.npy` 文件。
+首次 BEV Mamba 尝试为 `exp/congestion_bev_mamba_run1_2026-04-13_09-58-40_UTC`。日志中明确记录了 `FileNotFoundError`。问题来源于数据路径指向 `../datasets/...` 下一个缺失的 `.npy` 文件。
 
-这一步的反思很直接:
+该阶段暴露出两点工程问题:
 
-- Hydra 运行时工作目录会变化，路径问题不能只靠“看起来差不多”来判断。
-- 训练失败时要先排输入链路，再谈结构好坏。
+- Hydra 运行时工作目录会变化，路径配置需要显式核对。
+- 训练失败分析应优先检查输入链路与数据可达性，再讨论结构层面的有效性。
 
-### 6.4 第四阶段: zero-init Mamba 完整收口
+### 6.4 第四阶段: `zero-init Mamba` 收口
 
-最终接受版本是 `exp/congestion_bev_mamba_zero_init_2026-04-13_19-08-30_UTC`。它先跑到了 `epoch 89`，保存了 `epoch=89-pearson=0.6475.ckpt`；中途训练意外中断后，又从 `last.ckpt` 恢复，最终补齐到 `epoch 99`，落下 `epoch=99-pearson=0.6499.ckpt`。
+最终接受版本为 `exp/congestion_bev_mamba_zero_init_2026-04-13_19-08-30_UTC`。训练先运行至 `epoch 89`，保存 `epoch=89-pearson=0.6475.ckpt`；中途发生中断后，从 `last.ckpt` 恢复，最终补齐至 `epoch 99`，生成 `epoch=99-pearson=0.6499.ckpt`。
 
-这一段复现记录很有价值，因为它说明我们的工程流程不是“只能在理想状态下跑一次”，而是已经具备了**中断后续跑并保持结果连续性**的能力。
+该阶段表明工程流程已具备**中断恢复并保持结果连续性**的能力。同时，zero-init 实验早期标准输出的保留情况存在缺口，当前可直接核验的中间点主要包括 `epoch 89` checkpoint 与恢复后的日志结果。
 
-## 7. 最核心的结果
+## 7. 核心结果
 
 ### 7.1 最终分数总览
 
@@ -729,26 +767,28 @@ flowchart LR
 | 强基线重跑 | {rerun_val["pearson"]:.4f} | {rerun_val["spearman"]:.4f} | {rerun_val["kendall"]:.4f} | {rerun_test["pearson"]:.4f} | {rerun_test["spearman"]:.4f} | {rerun_test["kendall"]:.4f} |
 | zero-init BEV Mamba | {zero_val["pearson"]:.4f} | {zero_val["spearman"]:.4f} | {zero_val["kendall"]:.4f} | {zero_test["pearson"]:.4f} | {zero_test["spearman"]:.4f} | {zero_test["kendall"]:.4f} |
 
-### 7.2 如果只想知道“换成 Mamba 到底有没有提升”
+### 7.2 Mamba 带来的增益
 
-最公平的比较不是拿 `zero-init Mamba` 去对最早那版原始复现，而是去对**同样使用 `lr=1e-3`、`seed=3407` 的强基线**。这样对比时，主要差别就集中在结构本身。
+更合适的比较对象为**使用相同 `lr=1e-3` 与 `seed=3407` 的强基线**。在这一比较设置下，主要差异集中于结构改动本身。
 
-和强基线相比，`zero-init BEV Mamba` 的提升是:
+相较于强基线，`zero-init BEV Mamba` 的提升如下:
 
 - 验证集 Pearson: {summary["gain_vs_rerun"]["val"]["pearson"]["absolute"]:+.4f}
 - 测试集 Pearson: {summary["gain_vs_rerun"]["test"]["pearson"]["absolute"]:+.4f}
 - 测试集 Spearman: {summary["gain_vs_rerun"]["test"]["spearman"]["absolute"]:+.4f}
 - 测试集 Kendall: {summary["gain_vs_rerun"]["test"]["kendall"]["absolute"]:+.4f}
 
-这里最值得注意的是: **三个测试指标都一起变好**。尤其是 Spearman 和 Kendall 的提升幅度比 Pearson 更明显。这说明新模块带来的不只是“某几个绝对值更贴近”，更可能是**整张拥塞图里高低关系的排序也更一致了**。这是一种合理解读，不是额外实验结论，但它和现有数字是对得上的。
+需要单独指出的是，本项目从 `0.5570` 到 `0.6488` 的主要跃迁发生在强基线重跑阶段，因此当前模块的贡献可表述为“在强基线上观察到的小幅正增益”。
 
-### 7.3 提升是不是靠堆参数换来的
+三个测试指标均出现同步提升，其中 Spearman 与 Kendall 的增幅高于 Pearson。基于现有指标，可以给出如下推断: 新模块带来的改进既体现在绝对值接近程度上，也体现在拥塞图高低关系的排序一致性上。该解释属于依据现有数据进行的推断，与现有结果相符；当前材料尚未给出多 seed 方差，相关结论范围据此限定在当前单次比较结果。
 
-不是。
+### 7.3 参数开销分析
 
-基线总参数量是 `{summary["params"]["baseline"]["total"]:,}`，`zero-init Mamba` 是 `{summary["params"]["mamba_zero_init"]["total"]:,}`。也就是说只增加了 `{param_overhead["absolute"]:,}` 个参数，约 `+{param_overhead["relative_percent"]:.3f}%`。
+参数开销较小。
 
-用更直白的话说: **参数基本没怎么变，但分数还是往上走了**。这使得“结构更聪明了”这个说法更站得住。
+基线总参数量为 `{summary["params"]["baseline"]["total"]:,}`，`zero-init Mamba` 为 `{summary["params"]["mamba_zero_init"]["total"]:,}`。新增参数量为 `{param_overhead["absolute"]:,}`，约 `+{param_overhead["relative_percent"]:.3f}%`。
+
+这一结果表明，当前观察到的小幅增益与大幅模型扩容无关。
 
 ## 8. 图表
 
@@ -756,80 +796,86 @@ flowchart LR
 
 ![Validation Pearson](figures/validation_pearson_curves.png)
 
-这张图最适合看两件事:
+该图主要展示两点:
 
 - 原版首个复现到强基线之间有明显跃迁，说明训练配方本身非常重要。
-- 在强基线已经很高的情况下，`zero-init BEV Mamba` 还能继续把最终点位再往上推一点。
+- 在强基线已经很高的情况下，`zero-init BEV Mamba` 仍有小幅抬升最终点位。
 
 ### 8.2 最终验证/测试指标柱状图
 
 ![Final Metric Bars](figures/final_metric_bars.png)
 
-这张图适合在答辩或汇报时直接回答“最后到底谁最好”。验收版本在验证和测试两个层面都保持了领先。
+该图用于展示最终模型优劣关系。验收版本在验证集与测试集两个层面均保持领先。
 
 ### 8.3 相对强基线的净增益
 
 ![Gain vs Rerun](figures/gain_vs_rerun.png)
 
-这张图比总分表更适合讲“结构改造的净贡献”。重点不是绝对值有多夸张，而是**在一个已经很强的 baseline 上，依然实现了稳定正增益**。
+该图突出结构改造的净贡献。重点在于，在较强 baseline 上仍能观察到小幅正增益。
 
 ### 8.4 数据规模与参数开销
 
 ![Dataset And Params](figures/dataset_and_params.png)
 
-这张图用来支持两个结论:
+该图支撑两项结论:
 
-- 数据规模足够大，训练不是玩具级实验。
-- Mamba 改造不是靠大幅扩容模型来换分数。
+- 数据规模足以支撑当前项目收尾所需的结果汇总。
+- Mamba 改造并未依赖大幅扩容模型规模。
 
 ### 8.5 复现与验收时间线
 
 ![Reproduction Timeline](figures/reproduction_timeline.png)
 
-这张图把“原版复现 -> 强基线 -> 首次 Mamba 失败 -> zero-init Mamba -> 中断恢复 -> 最终 checkpoint”串成了一条完整工程叙事线，适合写进项目总结。
+该图将“原版复现 -> 强基线 -> 首次 Mamba 失败 -> zero-init Mamba -> 中断恢复 -> 最终 checkpoint”串联为完整工程时间线，适合纳入项目总结。
 
 ### 8.6 结构示意图
 
 ![Architecture Diagram](figures/architecture_diagram.png)
 
-这张图可以配合口头讲解:
+该图适合用于配合结构介绍:
 
-- 上半部分是原版 CircuitFormer
-- 下半部分是接受验收的版本
-- 最关键的变化就是在 encoder 和 decoder 之间插入了一个轻量残差 neck
+- 上半部分对应原版 CircuitFormer
+- 下半部分对应验收版本
+- 关键改动位于 encoder 与 decoder 之间的轻量残差 neck
 
-## 9. 这次工作的真正创新点
+## 9. 核心创新点
 
-如果把整件事压缩成几个最值得讲的点，我会这样概括:
+核心创新可归纳为以下几点:
 
-1. **保持主干不动，只对 BEV 特征图做增量改造。**
-   这比“整个模型推倒重来”更稳，也更容易解释清楚改进到底来自哪里。
+1. **保持主干框架，仅对 BEV 特征图做增量改造。**
+   该方式相较于整体重构更稳，也更利于隔离结构改动的实际贡献。
 
 2. **用行扫描和列扫描补强二维布局特征。**
-   对芯片布局这种天然具有二维空间结构的任务，这种设计很自然，也很贴题。
+   对芯片布局这一天然二维空间任务，该设计具有较好的问题匹配性。
 
-3. **用 zero-init 让新模块从“安全模式”起步。**
-   这不是花哨技巧，而是一种很务实的工程设计: 先不要破坏已有能力，再逐步学习增益。
+3. **用 zero-init 控制新模块的早期扰动。**
+   该设计使新增分支以残差修正项的形式逐步介入，以减小训练起步阶段的直接改写幅度。
 
-4. **在强基线上继续挖到正收益。**
-   这一点比“从弱基线大幅提升”更难，也更有说服力。
+4. **在强基线上观察到小幅正收益。**
+   该结果比仅与弱基线比较更有解释价值，但当前材料尚未给出多 seed 方差。
 
-## 10. 简短的事实说明
+## 10. 事实说明
 
-为了严格求真，这里保留一条必要说明: `zero-init` 首轮训练的早期标准输出没有完整保留成一份标准 `train.log`，所以它在 `epoch 89` 之前的中间验证点没有像另外两条实验那样完整可视化。报告中关于这条实验的最终结论只使用了**已保存 checkpoint、恢复日志和重新跑出的测试日志**，没有用猜测去补点。
+为保证陈述可核验，保留如下事实说明:
 
-## 11. 结项建议
+- `zero-init` 首轮训练的早期标准输出未完整保留为标准 `train.log`，因此 `epoch 89` 之前的中间验证点与另外两条实验相比缺少同粒度的完整可视化。报告中关于该实验的最终结论使用**已保存 checkpoint、恢复日志与重新跑出的测试日志**作为依据，未引入猜测性补点。
+- 当前公开结论对应 congestion prediction 路线。配置文件中保留了 DRC label 路径入口；当前样本权重来源于 congestion 统计，因此 DRC 相关表述范围限定在代码入口说明。
+- 当前训练主线使用的是带像素权重的 MSE。配置中保留了 `model.loss` 字段，正式表述范围限定在现有训练主线。
+- 当前解码器的 encoder 部分加载了 `resnet18` 预训练权重，因此本报告将该路线视为包含外部视觉预训练先验。
+- 当前 `BEV Mamba` 相对强基线的结论基于单次强基线与单次 zero-init run，对应“观察到的小幅正增益”；结论范围限定在当前单次比较证据。
 
-从当前证据看，这个项目已经具备比较完整的收尾条件:
+## 11. 结项判断
+
+从当前证据看，项目已经具备较完整的收尾条件:
 
 - 原版模型已经复现
 - 强基线已经建立
 - Mamba 改造已经落地到代码和真实 checkpoint
 - 中断恢复链路已经验证
-- 最终验收模型在验证集和测试集上都优于强基线
-- 提升不是靠大幅加参数换来的
+- 最终验收模型在验证集和测试集上相对强基线均观察到小幅正增益
+- 该增益未依赖大幅加参数
 
-因此，我建议把 `zero-init BEV Mamba` 版本作为本项目的正式收口版本，并以它为主线完成最后的答辩/汇报材料。
+建议将 `zero-init BEV Mamba` 版本作为正式收口版本，并以它为主线完成最后的答辩/汇报材料。更严格的学术性主张仍需额外的多 seed 与范围校验材料支撑。
 """
 
     (OUT_DIR / "project_closeout_report.md").write_text(report)
