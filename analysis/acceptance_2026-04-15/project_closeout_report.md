@@ -1,6 +1,4 @@
-# CircuitFormer 项目验收与收尾报告
-
-生成时间: 2026-04-15T15:41:25.052824+00:00
+# CircuitFormer-Mamba 项目验收与收尾报告
 
 ## 0. Checklist
 

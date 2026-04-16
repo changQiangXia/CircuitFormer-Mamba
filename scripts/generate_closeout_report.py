@@ -549,9 +549,7 @@ def make_markdown(summary):
     formal_test = summary["experiments"]["formal"]["test"]
     param_overhead = summary["param_overhead_vs_baseline"]
 
-    report = f"""# CircuitFormer 项目验收与收尾报告
-
-生成时间: {summary["generated_at_utc"]}
+    report = f"""# CircuitFormer-Mamba 项目验收与收尾报告
 
 ## 0. Checklist
 

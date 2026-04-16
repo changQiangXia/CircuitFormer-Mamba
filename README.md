@@ -1,4 +1,4 @@
-# CircuitFormer
+# CircuitFormer-Mamba
 
 本仓库包含两部分内容:
 
