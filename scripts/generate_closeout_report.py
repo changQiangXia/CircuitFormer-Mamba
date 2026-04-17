@@ -895,7 +895,7 @@ $$
 - 最终验收模型在验证集和测试集上相对强基线均观察到小幅正增益
 - 该增益未依赖大幅加参数
 
-建议将 `zero-init BEV Mamba` 版本作为正式收口版本，并以它为主线完成最后的答辩/汇报材料。更严格的学术性主张仍需额外的多 seed 与范围校验材料支撑。
+建议将 `zero-init BEV Mamba` 版本作为当前项目的归档版本，并据此整理结项文档。更严格的学术性主张仍需额外的多 seed 与范围校验材料支撑。
 """
 
     (OUT_DIR / "project_closeout_report.md").write_text(report)
