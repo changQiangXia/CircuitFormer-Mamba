@@ -11,6 +11,12 @@
 
 原论文: *Circuit as Set of Points*，NeurIPS 2023，论文链接为 <https://arxiv.org/abs/2310.17418>。
 
+## 项目定位
+
+- 高质量复现: 原版 `CircuitFormer` 训练流程已打通。
+- 工程修复: 训练脚本、路径配置、中断恢复与验收材料已整理到可复核状态。
+- 探索性改进: 在强基线之上加入一个 `Mamba-inspired` 的轻量 `BEV residual neck`，当前观察到小幅正增益，参数增量约 `+0.125%`。
+
 ## 运行前提
 
 - 命令默认从仓库根目录执行。
@@ -82,7 +88,7 @@ WANDB_MODE=disabled python test.py experiment.ckpt_path=exp/<run_name>/<model>.c
 - `config/config.yaml` 中保留了 DRC label 路径入口；当前公开结果的叙述范围限定在 congestion prediction。
 - `model/model_interface.py` 的当前训练主线使用带像素权重的 MSE；`model.loss` 字段在配置中保留，README 的表述范围据此限定在现有训练主线。
 - 报告中的 Pearson / Spearman / Kendall 采用“逐样本计算，再对样本平均”的口径；该口径区别于将全数据集像素摊平后计算单次全局相关系数。
-- 当前 `BEV Mamba` 相对强基线的结论可表述为**观察到的小幅正增益**；仓库尚未提供多 seed 方差，因此表述范围限定在当前证据。
+- 当前 `BEV Mamba` 相对强基线的结论可表述为**观察到的小幅正增益**；当前证据由 congestion prediction、weighted MSE 主线、单次强基线与单次 `zero-init` run 共同构成。
 
 ## 建议阅读顺序
 

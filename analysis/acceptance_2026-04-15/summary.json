@@ -255,9 +255,10 @@
     "validation_cadence": "Validation runs every 10 epochs according to trainer.check_val_every_n_epoch=10.",
     "zero_init_history_note": "The early stdout of the zero-init run was not preserved as a full train.log, so its intermediate curve before epoch 89 is reconstructed only from saved checkpoints and the later resume log.",
     "run1_failure_excerpt": "FileNotFoundError: [Errno 2] No such file or directory: '../datasets/CircuitNet-N28/graph_features/instance_placement_micron/6274-RISCY-FPU-b-1-c20-u0.9-m1-p4-f1.npy'",
+    "project_position_note": "This project is positioned as a high-quality reproduction, engineering repair, and exploratory improvement with one Mamba-inspired lightweight BEV residual neck.",
     "method_scope_note": "The accepted BEV Mamba variant is a lightweight residual neck inspired by selective state space ideas, inserted between encoder and decoder in the current CircuitFormer pipeline.",
-    "contribution_scope_note": "The largest metric jump in this project comes from the strong baseline rerun; the BEV Mamba gain versus that baseline is a small positive gain.",
-    "experiment_scope_note": "Public conclusions here cover congestion prediction under the current weighted-MSE training path. The DRC entry in config and the configurable loss field remain code-level interfaces rather than finalized experimental tracks.",
+    "contribution_scope_note": "The largest metric jump in this project comes from the strong baseline rerun; the BEV Mamba gain versus that baseline is an exploratory small positive gain.",
+    "experiment_scope_note": "Public conclusions here cover congestion prediction under the current weighted-MSE training path, using one strong-baseline run and one zero-init Mamba run. The DRC entry in config and the configurable loss field remain code-level interfaces rather than finalized experimental tracks.",
     "prior_note": "The decoder encoder loads ResNet18 pretrained weights, so the accepted route includes an external visual pretraining prior.",
     "variance_note": "The accepted comparison uses one strong-baseline run and one zero-init Mamba run, so the reported gain is a single-run observation."
   },
