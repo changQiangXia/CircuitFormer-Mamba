@@ -5,6 +5,8 @@ ENV_NAME="${1:-circuitformer-true-mamba}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
+# /etc/network_turbo is an AutoDL-specific acceleration entry.
+# On other platforms, network access needs to be handled outside this script.
 source /etc/network_turbo >/dev/null 2>&1 || true
 
 # Some hosts export OMP_NUM_THREADS=0, which libgomp rejects.

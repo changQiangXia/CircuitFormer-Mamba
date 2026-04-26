@@ -51,6 +51,8 @@ mkdir -p ckpts
 wget https://download.pytorch.org/models/resnet18-f37072fd.pth -O ckpts/resnet18.pth
 ```
 
+`source /etc/network_turbo` 是 AutoDL 平台提供的网络加速入口，常用于访问 GitHub 与 Hugging Face。其他平台或本地机器通常没有这一脚本，相关依赖下载与代码拉取需自行处理网络连接。
+
 训练与测试入口:
 
 ```bash
@@ -76,7 +78,7 @@ WANDB_MODE=disabled python test.py \
 
 | 环节 | 现象 | 处理 |
 | --- | --- | --- |
-| 大体积 wheel 安装 | `torch 2.5.1+cu121` 与编译依赖安装时，`pip` 临时目录和缓存目录带来额外磁盘压力 | 使用 `source /etc/network_turbo || true`、`--no-cache-dir`，磁盘紧张时清理 `/tmp/pip-build-env-*`、`/tmp/pip-unpack-*` 与 `/root/.cache/pip` |
+| 大体积 wheel 安装 | `torch 2.5.1+cu121` 与编译依赖安装时，`pip` 临时目录和缓存目录带来额外磁盘压力 | 在 AutoDL 平台上可先执行 `source /etc/network_turbo || true`，再配合 `--no-cache-dir`；其他平台或本地机器需自行处理网络连接。磁盘紧张时可清理 `/tmp/pip-build-env-*`、`/tmp/pip-unpack-*` 与 `/root/.cache/pip` |
 | 宿主机线程环境变量 | 本机曾出现 `OMP_NUM_THREADS=0`，`libgomp` 会直接拒绝启动 | 训练、验证、安装脚本统一显式设置 `OMP_NUM_THREADS=1` |
 | `numpy` 版本 | `metrics.py` 仍使用 `np.float` | true Mamba 环境固定 `numpy==1.23.5` |
 | `setuptools` 版本 | `pytorch-lightning 2.1.0` 的导入路径仍会访问 `pkg_resources` | true Mamba 环境固定 `setuptools==75.8.0` |

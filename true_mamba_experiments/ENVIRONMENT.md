@@ -30,7 +30,8 @@
 
 ## 环境落地过程中的关键信号
 
-- 大体积 wheel 安装阶段需要配合 `source /etc/network_turbo || true` 与 `--no-cache-dir`
+- `source /etc/network_turbo || true` 是 AutoDL 平台提供的网络加速入口；其他平台或本地机器通常没有这一脚本，相关依赖下载需自行处理网络连接
+- 大体积 wheel 安装阶段可在 AutoDL 平台上配合 `source /etc/network_turbo || true` 与 `--no-cache-dir`
 - 磁盘压力集中出现在 `/tmp/pip-build-env-*`、`/tmp/pip-unpack-*` 与 `/root/.cache/pip`
 - 宿主机曾出现 `OMP_NUM_THREADS=0`，后续脚本统一显式设置 `OMP_NUM_THREADS=1`
 

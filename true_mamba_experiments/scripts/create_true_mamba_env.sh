@@ -6,6 +6,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 REQ_FILE="${REPO_ROOT}/true_mamba_experiments/requirements-true-mamba.txt"
 
+# /etc/network_turbo is an AutoDL-specific acceleration entry.
+# On other platforms, network access needs to be handled outside this script.
 source /etc/network_turbo || true
 
 if ! conda env list | awk '{print $1}' | grep -qx "${ENV_NAME}"; then

@@ -8,6 +8,8 @@ RUN_TS="${1:-$(date -u +'%Y-%m-%d_%H-%M-%S_UTC')}"
 SAVE_DIR="${ROOT}/exp/preflight_true_mamba_scheme_b_${RUN_TS}"
 LOG_FILE="${SAVE_DIR}/preflight.log"
 
+# /etc/network_turbo is an AutoDL-specific acceleration entry.
+# On other platforms, network access needs to be handled outside this script.
 source /etc/network_turbo >/dev/null 2>&1 || true
 
 mkdir -p "${SAVE_DIR}"
