@@ -10,6 +10,19 @@
 - `true Mamba Scheme B` 单次正式 run 已完成，归档目录为 `exp/congestion_true_mamba_scheme_b_2026-04-24_02-03-01_UTC`。
 - 当前单次 run 的最终指标形态为: Pearson 接近强基线，Spearman / Kendall 高于强基线。
 
+## 环境与任务边界
+
+本目录中的内容默认建立在 `circuitformer-true-mamba` 之上，职责边界与主线环境不同。
+
+- `circuitformer-gpu`
+  - 负责原版 `CircuitFormer`、强基线、`zero-init BEV Mamba`
+  - 更适合主线复现与轻量 neck 对照
+- `circuitformer-true-mamba`
+  - 负责 `true Mamba Scheme B`
+  - 更适合 official-Mamba 依赖安装、preflight、正式训练与诊断
+
+若主线环境尚未跑通，更稳妥的顺序是先完成主线复现，再切换到本目录对应的独立环境。
+
 ## 对照对象
 
 - 强基线: `exp/congestion_rerun_lr1e-3_seed3407_2026-04-12_10-58-54_UTC`

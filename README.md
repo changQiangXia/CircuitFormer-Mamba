@@ -28,6 +28,56 @@
 
 `requirements.txt` 作为历史快照保留。当前服务器上完成验证的依赖集合以上表两份清单为准。
 
+## 环境选择说明
+
+这两套环境服务的对象不同，直接混用会增加排障成本。
+
+| 维度 | `circuitformer-gpu` | `circuitformer-true-mamba` |
+| --- | --- | --- |
+| 服务对象 | 原版 `CircuitFormer`、强基线、`zero-init BEV Mamba` | `true Mamba Scheme B` |
+| 目标 | 复现实验主线与轻量 neck 对照 | official-Mamba neck 的独立实验线 |
+| 依赖核心 | `torch 1.13.0+cu117`、`spconv-cu117`、`torch-scatter` 对应 `pt113cu117` | `torch 2.5.1+cu121`、`spconv-cu121`、`torch-scatter` 对应 `pt25cu121`、`mamba-ssm`、`causal-conv1d` |
+| 已验证精度路径 | `16` | `bf16-mixed` |
+| 当前推荐任务 | 数据集接线、主线训练、轻量 neck 训练与测试 | official-Mamba neck 的 preflight、训练、测试 |
+
+更直接的理解方式如下:
+
+- `circuitformer-gpu` 对应“项目主线环境”。原版模型、强基线和轻量 `zero-init BEV Mamba` 都在这套环境中完成归档。
+- `circuitformer-true-mamba` 对应“official-Mamba 实验环境”。这一环境的职责是承载 `mamba-ssm`、`causal-conv1d` 以及与之匹配的新 Torch 栈。
+
+之所以拆成两套环境，原因集中在四点:
+
+- Torch 与 CUDA 轮子版本不同，`spconv` 与 `torch-scatter` 也需要跟随各自的 Torch 栈分别安装。
+- official `mamba-ssm` 的已验证组合位于 `torch 2.5.1+cu121` 路线，主线复现实验的归档组合位于 `torch 1.13.0+cu117` 路线。
+- `true Mamba Scheme B` 训练阶段使用了 `bf16-mixed`、finite guard、mask 与额外初始化约束；主线环境并未承担这一组排障责任。
+- 当前仓库中的历史结果已经按两条环境线归档，保持环境边界清晰，更利于复核。
+
+## 配置顺序建议
+
+若目标是复现当前仓库的主体结果，可按以下顺序执行:
+
+1. 配置 `circuitformer-gpu`
+2. 跑通原版 `CircuitFormer`
+3. 复现强基线
+4. 复现 `zero-init BEV Mamba`
+
+若目标是继续推进 official-Mamba 路线，可在主线跑通后继续执行:
+
+1. 另建 `circuitformer-true-mamba`
+2. 运行环境验证脚本
+3. 运行 Scheme B 的 preflight
+4. 再启动正式训练
+
+两套环境可以长期并存，切换方式也较简单:
+
+```bash
+conda activate circuitformer-gpu
+# 用于原版、强基线、zero-init BEV Mamba
+
+conda activate circuitformer-true-mamba
+# 用于 true Mamba Scheme B
+```
+
 ## 主线复现
 
 数据集下载说明: <https://circuitnet.github.io/intro/download.html>
@@ -67,12 +117,23 @@ WANDB_MODE=disabled python test.py \
   experiment.ckpt_path=exp/<run_name>/<model>.ckpt
 ```
 
+这一段命令执行完成后，环境已经具备以下能力:
+
+- 读取 `CircuitNet` 数据
+- 初始化原版 `CircuitFormer`
+- 训练强基线
+- 启用轻量 `zero-init BEV Mamba` neck
+
+若目标仅为主线复现与轻量 neck 对照，当前阶段无需安装 `mamba-ssm`。
+
 ## True Mamba 独立环境记录
 
 独立环境的设立基于两点事实:
 
 - 主线复现已经在 `torch 1.13.0+cu117` 上稳定归档。
 - 官方 `mamba-ssm` 在本机完成验证的组合为 `torch 2.5.1+cu121 + causal-conv1d 1.6.1 + mamba-ssm 2.3.1`。
+
+因此，`true Mamba Scheme B` 的配置方式更适合表述为“在主线环境之外，单独再建一套 official-Mamba 环境”。这样处理后，主线复现与 true Mamba 排障各自保持稳定。
 
 环境与训练阶段遇到的关键问题及处理如下:
 
@@ -93,6 +154,13 @@ bash true_mamba_experiments/scripts/create_true_mamba_env.sh
 bash true_mamba_experiments/scripts/verify_true_mamba_env.sh
 ```
 
+这两条命令完成的工作可分成两层:
+
+- 第一层是把 Python、Torch、`spconv`、`torch-scatter`、`mamba-ssm`、`causal-conv1d` 安装到一套独立环境中。
+- 第二层是直接验证“官方 `Mamba` 能否在当前 GPU 上前向运行”以及“当前仓库主干代码能否在该环境中初始化并完成冒烟测试”。
+
+环境验证通过后，再进入训练入口，顺序会更清楚，也更容易定位故障位置。
+
 训练入口:
 
 ```bash
@@ -109,6 +177,16 @@ bash true_mamba_experiments/scripts/train_congestion_true_mamba_scheme_b.sh
 - `model.true_mamba.out_proj_init_std=0.001`
 - `model.true_mamba.use_residual_scale=True`
 - `model.true_mamba.residual_scale_init=0.001`
+
+若只希望快速判断环境是否配到位，可按下面的最短链路执行:
+
+```bash
+conda activate circuitformer-true-mamba
+bash true_mamba_experiments/scripts/verify_true_mamba_env.sh
+bash true_mamba_experiments/scripts/preflight_true_mamba_scheme_b.sh
+```
+
+这条链路通过后，再进入正式训练，理解成本会低很多。
 
 ## 范围说明
 
