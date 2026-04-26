@@ -1,0 +1,43 @@
+experiment:
+  name: congestion_true_mamba_run1
+  env_name: circuitformer-true-mamba
+  compare_to:
+    - exp/congestion_rerun_lr1e-3_seed3407_2026-04-12_10-58-54_UTC
+    - exp/congestion_bev_mamba_zero_init_2026-04-13_19-08-30_UTC
+  output_pattern: exp/congestion_true_mamba_run1_<UTC_TIMESTAMP>
+
+data:
+  batch_size: 8
+  num_workers: 8
+
+trainer:
+  devices: 1
+  precision: 16-mixed
+  sync_batchnorm: false
+  log_every_n_steps: 10
+  validation_cadence: every_10_epochs
+
+model:
+  lr: 0.001
+  loss_mainline: weighted_mse
+  seed: 3407
+  bev_mamba:
+    enabled: false
+  true_mamba:
+    enabled: true
+    num_blocks: 1
+    d_state: 16
+    d_conv: 4
+    expand: 2
+    downsample: 1
+    bidirectional: true
+    out_proj_init_zero: true
+
+monitor:
+  interval_seconds: 600
+  capture:
+    - gpu_utilization
+    - gpu_memory
+    - process_status
+    - checkpoint_listing
+    - launcher_tail

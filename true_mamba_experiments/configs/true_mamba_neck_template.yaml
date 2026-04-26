@@ -1,0 +1,43 @@
+# 接入阶段模板
+# 当前文件用于冻结真正 Mamba neck 首轮实验的字段范围。
+# 代码接线完成后，再将字段映射到正式训练入口。
+
+experiment:
+  name: true_mamba_neck_run1
+  purpose: neck_integration_first_pass
+  env_name: circuitformer-true-mamba
+  baseline_run: exp/congestion_rerun_lr1e-3_seed3407_2026-04-12_10-58-54_UTC
+  light_mamba_run: exp/congestion_bev_mamba_zero_init_2026-04-13_19-08-30_UTC
+
+model:
+  insertion_point: encoder_to_decoder_neck
+  neck_type: true_mamba
+  input_channels: 64
+  spatial_size: [256, 256]
+  num_blocks: 1
+  d_state: 16
+  d_conv: 4
+  expand: 2
+  downsample: 1
+  sequence_layout: row_then_col
+  residual: enabled
+  out_proj_init: zero
+
+training:
+  task: congestion_prediction
+  loss_mainline: weighted_mse
+  keep_strong_baseline_recipe: true
+  run_count: 1
+
+smoke:
+  module_forward: required
+  full_model_forward: required
+  one_step_train: required
+  record_param_count: true
+  record_peak_memory: true
+  record_step_time: true
+
+stop_signal:
+  shape_path_stuck: true
+  memory_growth_excessive: true
+  clear_metric_signal_absent: true

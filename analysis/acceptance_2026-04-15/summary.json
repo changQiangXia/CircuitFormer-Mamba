@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-04-15T15:41:25.052824+00:00",
+  "generated_at_utc": "2026-04-26T12:17:28.133117+00:00",
   "dataset": {
     "train": 8296,
     "val": 1025,
@@ -206,6 +206,85 @@
         "spearman": 0.47588735937725846,
         "kendall": 0.3540435606638758
       }
+    },
+    "true_mamba_scheme_b": {
+      "label": "True Mamba neck (Scheme B, exploratory)",
+      "start_utc": "2026-04-24T02:03:01+00:00",
+      "end_utc": "2026-04-25T05:29:03.299036+00:00",
+      "best_ckpt": "exp/congestion_true_mamba_scheme_b_2026-04-24_02-03-01_UTC/epoch=99-pearson=0.6467.ckpt",
+      "val_history": [
+        {
+          "epoch": 9,
+          "pearson": 0.49500237682950415,
+          "spearman": 0.426113497142984,
+          "kendall": 0.3158159007563702
+        },
+        {
+          "epoch": 19,
+          "pearson": 0.5501025083632661,
+          "spearman": 0.49532966745286905,
+          "kendall": 0.3683570645027731
+        },
+        {
+          "epoch": 29,
+          "pearson": 0.5742107084515847,
+          "spearman": 0.45114482408147477,
+          "kendall": 0.3371813890012544
+        },
+        {
+          "epoch": 39,
+          "pearson": 0.6002450376002357,
+          "spearman": 0.4677083223051658,
+          "kendall": 0.35153610936662943
+        },
+        {
+          "epoch": 49,
+          "pearson": 0.6202637937239931,
+          "spearman": 0.4666144730044963,
+          "kendall": 0.350617246711794
+        },
+        {
+          "epoch": 59,
+          "pearson": 0.6283680702811711,
+          "spearman": 0.4884213193457956,
+          "kendall": 0.3667960737446862
+        },
+        {
+          "epoch": 69,
+          "pearson": 0.6326673214724771,
+          "spearman": 0.48023195142291175,
+          "kendall": 0.3625005010862026
+        },
+        {
+          "epoch": 79,
+          "pearson": 0.6372231130583681,
+          "spearman": 0.4788394730266867,
+          "kendall": 0.36010588160264345
+        },
+        {
+          "epoch": 89,
+          "pearson": 0.6402527916239786,
+          "spearman": 0.48092129051348537,
+          "kendall": 0.3622937258872825
+        },
+        {
+          "epoch": 99,
+          "pearson": 0.6467038632294256,
+          "spearman": 0.4980778752917215,
+          "kendall": 0.375272511437474
+        }
+      ],
+      "final_val": {
+        "epoch": 99,
+        "pearson": 0.6467038632294256,
+        "spearman": 0.4980778752917215,
+        "kendall": 0.375272511437474
+      },
+      "test": {
+        "pearson": 0.6358109626560412,
+        "spearman": 0.48459229086238903,
+        "kendall": 0.3655739927822483
+      }
     }
   },
   "events": [
@@ -247,7 +326,17 @@
     {
       "time_utc": "2026-04-14T18:27:28.153626+00:00",
       "title": "Final Mamba checkpoint saved",
-      "detail": "The resumed run reaches epoch 99 and saves the final accepted checkpoint."
+      "detail": "The resumed run reaches epoch 99 and saves the final zero-init checkpoint."
+    },
+    {
+      "time_utc": "2026-04-24T02:03:01+00:00",
+      "title": "True Mamba Scheme B starts",
+      "detail": "A separate exploratory line starts from the same congestion recipe and inserts an official Mamba-based neck."
+    },
+    {
+      "time_utc": "2026-04-25T05:29:03.299036+00:00",
+      "title": "True Mamba final checkpoint saved",
+      "detail": "The exploratory Scheme B run reaches epoch 99 and saves a validation-best checkpoint."
     }
   ],
   "notes": {
@@ -255,12 +344,13 @@
     "validation_cadence": "Validation runs every 10 epochs according to trainer.check_val_every_n_epoch=10.",
     "zero_init_history_note": "The early stdout of the zero-init run was not preserved as a full train.log, so its intermediate curve before epoch 89 is reconstructed only from saved checkpoints and the later resume log.",
     "run1_failure_excerpt": "FileNotFoundError: [Errno 2] No such file or directory: '../datasets/CircuitNet-N28/graph_features/instance_placement_micron/6274-RISCY-FPU-b-1-c20-u0.9-m1-p4-f1.npy'",
-    "project_position_note": "This project is positioned as a high-quality reproduction, engineering repair, and exploratory improvement with one Mamba-inspired lightweight BEV residual neck.",
-    "method_scope_note": "The accepted BEV Mamba variant is a lightweight residual neck inspired by selective state space ideas, inserted between encoder and decoder in the current CircuitFormer pipeline.",
-    "contribution_scope_note": "The largest metric jump in this project comes from the strong baseline rerun; the BEV Mamba gain versus that baseline is an exploratory small positive gain.",
-    "experiment_scope_note": "Public conclusions here cover congestion prediction under the current weighted-MSE training path, using one strong-baseline run and one zero-init Mamba run. The DRC entry in config and the configurable loss field remain code-level interfaces rather than finalized experimental tracks.",
-    "prior_note": "The decoder encoder loads ResNet18 pretrained weights, so the accepted route includes an external visual pretraining prior.",
-    "variance_note": "The accepted comparison uses one strong-baseline run and one zero-init Mamba run, so the reported gain is a single-run observation."
+    "project_position_note": "This project is positioned as a high-quality reproduction, engineering repair, and parallel comparison of two Mamba-related neck routes.",
+    "method_scope_note": "The lightweight BEV Mamba path is a Mamba-inspired residual scan neck, while the true-Mamba path wraps the official mamba_ssm.Mamba module at the same neck insertion point.",
+    "contribution_scope_note": "The largest Pearson jump in this project comes from the strong baseline rerun; the two Mamba routes are recorded as route-specific observations on top of that baseline.",
+    "experiment_scope_note": "Public conclusions here cover congestion prediction under the current weighted-MSE training path, using one strong-baseline run, one zero-init BEV Mamba run, and one true Mamba Scheme B run. The DRC entry in config and the configurable loss field remain code-level interfaces rather than finalized experimental tracks.",
+    "prior_note": "The decoder encoder loads ResNet18 pretrained weights, so the current routes include an external visual pretraining prior.",
+    "variance_note": "Each comparison route in the current archive is represented by a single run.",
+    "true_mamba_note": "The true Mamba Scheme B line uses official mamba_ssm.Mamba modules under a separately validated environment and includes both validation history and test log."
   },
   "gain_vs_rerun": {
     "val": {
@@ -289,6 +379,68 @@
       "kendall": {
         "absolute": 0.007670158195855259,
         "relative_percent": 2.2144189309002784
+      }
+    }
+  },
+  "variant_gains_vs_rerun": {
+    "zero_init_mamba": {
+      "val": {
+        "pearson": {
+          "absolute": 0.0010849812329896125,
+          "relative_percent": 0.16721968619848002
+        },
+        "spearman": {
+          "absolute": 0.005158711544785088,
+          "relative_percent": 1.067552506133357
+        },
+        "kendall": {
+          "absolute": 0.003906997557165226,
+          "relative_percent": 1.0879683382704954
+        }
+      },
+      "test": {
+        "pearson": {
+          "absolute": 0.002196832319261044,
+          "relative_percent": 0.3442073344824232
+        },
+        "spearman": {
+          "absolute": 0.010377628153341367,
+          "relative_percent": 2.2293042351781844
+        },
+        "kendall": {
+          "absolute": 0.007670158195855259,
+          "relative_percent": 2.2144189309002784
+        }
+      }
+    },
+    "true_mamba_scheme_b": {
+      "val": {
+        "pearson": {
+          "absolute": -0.002131963254426883,
+          "relative_percent": -0.32858285060804066
+        },
+        "spearman": {
+          "absolute": 0.014849976415835187,
+          "relative_percent": 3.0730792759234498
+        },
+        "kendall": {
+          "absolute": 0.016163020863875055,
+          "relative_percent": 4.500861516652807
+        }
+      },
+      "test": {
+        "pearson": {
+          "absolute": -0.0024184122538140063,
+          "relative_percent": -0.37892524990025533
+        },
+        "spearman": {
+          "absolute": 0.01908255963847194,
+          "relative_percent": 4.09928264835627
+        },
+        "kendall": {
+          "absolute": 0.019200590314227717,
+          "relative_percent": 5.543321218493513
+        }
       }
     }
   },

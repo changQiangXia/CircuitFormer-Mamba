@@ -18,13 +18,50 @@ class MInterface(pl.LightningModule):
         self.configure_loss()
         self.cnt=0
 
+    @staticmethod
+    def _tensor_summary(tensor):
+        finite_mask = torch.isfinite(tensor)
+        nonfinite_count = int((~finite_mask).sum().item())
+        if finite_mask.any():
+            finite_values = tensor[finite_mask]
+            finite_min = float(finite_values.min().item())
+            finite_max = float(finite_values.max().item())
+            finite_mean = float(finite_values.mean().item())
+        else:
+            finite_min = float('nan')
+            finite_max = float('nan')
+            finite_mean = float('nan')
+        return {
+            'shape': tuple(tensor.shape),
+            'dtype': str(tensor.dtype),
+            'nonfinite_count': nonfinite_count,
+            'finite_min': finite_min,
+            'finite_max': finite_max,
+            'finite_mean': finite_mean,
+        }
+
+    def _ensure_finite(self, name, tensor, batch_idx):
+        if torch.isfinite(tensor).all():
+            return
+        stats = self._tensor_summary(tensor.detach())
+        raise FloatingPointError(
+            f'{name} became non-finite at batch_idx={batch_idx}: '
+            f'shape={stats["shape"]} dtype={stats["dtype"]} '
+            f'nonfinite_count={stats["nonfinite_count"]} '
+            f'finite_min={stats["finite_min"]} '
+            f'finite_max={stats["finite_max"]} '
+            f'finite_mean={stats["finite_mean"]}'
+        )
+
     def forward(self, img):
         return self.model(img)
 
     def training_step(self, batch, batch_idx):
         x1, y1, x2, y2, offset, label, weight = batch
         output = self([x1, y1, x2, y2, offset])
+        self._ensure_finite('training/output', output, batch_idx)
         loss = self.cfg.loss_weight * torch.mean(((output - label) ** 2) * weight)
+        self._ensure_finite('training/loss', loss, batch_idx)
         # loss = self.cfg.loss_weight * self.loss_function(output, label)
         self.log('loss', loss, on_step=True, on_epoch=True, prog_bar=True, batch_size=self.cfg.batch_size)
         return loss
@@ -33,6 +70,7 @@ class MInterface(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x1, y1, x2, y2, offset, label, weight = batch
         output = self([x1, y1, x2, y2, offset]) / self.cfg.label_weight
+        self._ensure_finite('validation/output', output, batch_idx)
         for i in range(output.shape[0]):
             output_ = output[i,].squeeze(1)
             label_ = label[i,].squeeze(1)
@@ -41,6 +79,7 @@ class MInterface(pl.LightningModule):
     def test_step(self, batch, batch_idx):
         x1, y1, x2, y2, offset, label, weight = batch
         output = self([x1, y1, x2, y2, offset]) / self.cfg.label_weight
+        self._ensure_finite('test/output', output, batch_idx)
        
         for i in range(output.shape[0]):
             output_ = output[i,].squeeze(1)

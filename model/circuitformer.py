@@ -10,6 +10,14 @@ import segmentation_models_pytorch as smp
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
+def _cfg_get(cfg, key, default=None):
+    if cfg is None:
+        return default
+    if isinstance(cfg, dict):
+        return cfg.get(key, default)
+    return getattr(cfg, key, default)
+
+
 def _resolve_resnet18_ckpt():
     candidates = [
         PROJECT_ROOT / 'ckpts' / 'resnet18.pth',
@@ -70,12 +78,33 @@ class CircuitFormer(nn.Module):
     def __init__(self, cfg=None):
         super().__init__()
         self.encoder = Encoder()
-        self.bev_neck = build_bev_mamba_neck(cfg, dim=self.encoder.PFN.get_output_feature_dim())
+        self.bev_neck = self._build_neck(cfg, dim=self.encoder.PFN.get_output_feature_dim())
 
         self.decoder = smp.UnetPlusPlus(encoder_name='resnet18', encoder_depth=5, encoder_weights=None , decoder_use_batchnorm=True, decoder_channels=(512, 256, 128, 64, 64), decoder_attention_type=None, in_channels=64, classes=1, activation='sigmoid', aux_params=None)
         ckpt = torch.load(_resolve_resnet18_ckpt(), map_location='cpu')
         ckpt.pop('conv1.weight')
         self.decoder.encoder.load_state_dict(ckpt, strict=False)
+
+    def _build_neck(self, cfg, dim):
+        bev_cfg = _cfg_get(cfg, 'bev_mamba', None)
+        true_cfg = _cfg_get(cfg, 'true_mamba', None)
+        use_bev = _cfg_get(bev_cfg, 'enabled', False)
+        use_true = _cfg_get(true_cfg, 'enabled', False)
+
+        if use_bev and use_true:
+            raise ValueError('Only one neck path can be enabled at a time.')
+
+        if use_true:
+            try:
+                from true_mamba_experiments.modules.true_mamba_neck import build_true_mamba_neck
+            except ImportError as exc:
+                raise ImportError(
+                    'true Mamba neck was requested, but the true-Mamba experimental '
+                    'module or its dependencies are unavailable in the current environment.'
+                ) from exc
+            return build_true_mamba_neck(cfg, dim=dim)
+
+        return build_bev_mamba_neck(cfg, dim=dim)
 
     def forward(self, batch):
         x = self.encoder(batch)

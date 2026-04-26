@@ -31,3 +31,11 @@ ckpts/
 # Local-only documentation backups
 PROJECT_CLOSEOUT_CHECKLIST.md
 README.original.md
+
+# Acceptance figures kept local
+analysis/acceptance_2026-04-15/figures/reproduction_timeline.png
+
+# Isolated true-Mamba experimental workspace outputs
+true_mamba_experiments/runs/
+true_mamba_experiments/artifacts/
+true_mamba_experiments/cache/
