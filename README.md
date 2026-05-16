@@ -19,6 +19,14 @@
 | zero-init BEV Mamba | 0.6499 | 0.6404 | 三项测试指标均高于强基线 |
 | true Mamba Scheme B | 0.6467 | 0.6358 | Pearson 接近强基线，Spearman / Kendall 高于强基线 |
 
+## 热点图对照
+
+下图选取测试集样本 `5429-RISCY-FPU-a-3-c2-u0.9-m2-p1-f1.npy`，基于三份已归档 checkpoint 生成。第一行展示全图预测，第二行展示 `Ground Truth` 的 top-5% 热点掩码与三组绝对误差图，第三行展示主热点区域放大图。标题中的 `Pearson`、`MAE` 与 `overlap@5%` 均为单样本统计量，其中 `overlap@5%` 表示预测热点与真实热点在 top-5% 像素上的重合比例。
+
+![Congestion hotspot diagnostics](analysis/hotspot_maps_2026-05-16/5429-RISCY-FPU-a-3-c2-u0.9-m2-p1-f1_hotspot_diagnostics.png)
+
+图像生成脚本位于 `scripts/generate_hotspot_map.py`。当前脚本会同时输出基础对照图与诊断图，便于在归档 checkpoint 之间进行可视化核查。
+
 ## 环境矩阵
 
 | 用途 | conda 环境 | Python | Torch 栈 | 依赖清单 |
