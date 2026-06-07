@@ -95,6 +95,45 @@ conda activate circuitformer-true-mamba
 - `data.data_root=${hydra:runtime.cwd}/../datasets/CircuitNet-N28/graph_features/instance_placement_micron`
 - `data.label_root=${hydra:runtime.cwd}/../datasets/CircuitNet-N28/training_set/congestion/label`
 
+## 数据准备
+
+主线训练会用到两类文件:
+
+- `graph_features/instance_placement_micron`: 输入特征，可理解为电路布局的主要描述信息
+- `training_set/congestion/label`: 目标标签，可理解为每个位置的拥塞强弱图
+
+`train.py` 与 `test.py` 启动后会直接读取这两个目录。`datasets/CircuitNet-N28/script/generate_training_set.py` 属于手工执行的数据整理脚本，训练入口不会自动调用。
+
+对 congestion 任务，`training_set/congestion/label` 可理解为“处理好的拥塞热图”。这份标签来自两张同名原始图:
+
+- `routability_features_decompressed/congestion/congestion_global_routing/overflow_based/congestion_GR_horizontal_overflow`
+- `routability_features_decompressed/congestion/congestion_global_routing/overflow_based/congestion_GR_vertical_overflow`
+
+整理过程可以概括为:
+
+1. 读取同一样本的横向拥塞图与纵向拥塞图
+2. 将两张图统一缩放到 `256x256`
+3. 逐点相加
+4. 对整张结果图做 `0` 到 `1` 的归一化
+5. 保存为 `training_set/congestion/label/<sample>.npy`
+
+因此，当前仓库默认使用的 congestion label 可以表述为“由横向与纵向全局布线拥塞合成后的 `256x256` 归一化标签图”。
+
+若本地已经存在 `training_set/congestion/label`，可以直接进入训练。若当前目录中只有原始的 `routability_features` 压缩数据，可在数据集目录中手工执行以下步骤:
+
+```bash
+cd ../datasets/CircuitNet-N28/script
+python decompress_routability.py
+python generate_training_set.py --task congestion
+```
+
+上述两条命令的含义如下:
+
+- `decompress_routability.py`: 将 `routability_features` 解压到 `routability_features_decompressed`
+- `generate_training_set.py --task congestion`: 基于解压后的数据生成 `training_set/congestion/feature` 与 `training_set/congestion/label`
+
+主线 `CircuitFormer` 当前直接使用 `graph_features/instance_placement_micron` 作为输入，因此 `training_set/congestion/feature` 在当前主线中并非必需项；`training_set/congestion/label` 则为默认监督目录。
+
 主线复现命令如下:
 
 ```bash
